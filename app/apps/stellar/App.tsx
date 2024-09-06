@@ -1,13 +1,11 @@
 // components/finder/Finder.tsx
 import React, { useState, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
 import Canvas from "./components/Canvas";
 import Sidebar from "./components/Sidebar";
 import CanvasContextMenu from "./components/CanvasCM";
 import SidebarContextMenu from "./components/SidebarCM";
 
 const Finder: React.FC = () => {
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     type: "canvas" | "sidebar";
     x: number;
@@ -20,26 +18,15 @@ const Finder: React.FC = () => {
     handleNewFolder: (x: number, y: number) => void;
   } | null>(null);
 
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const rect = finderRef.current?.getBoundingClientRect();
-      if (rect) {
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const type = x < 96 && isSidebarVisible ? "sidebar" : "canvas";
-        setContextMenu({ type, x, y });
-      }
-    },
-    [isSidebarVisible]
-  );
-
-  const handleMouseEnter = useCallback(() => {
-    setIsSidebarVisible(true);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsSidebarVisible(false);
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const rect = finderRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const type = x < 200 ? "sidebar" : "canvas"; // Adjust this value based on your sidebar width
+      setContextMenu({ type, x, y });
+    }
   }, []);
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
@@ -48,7 +35,6 @@ const Finder: React.FC = () => {
     canvasRef.current?.handleNewFolder(x, y);
   }, []);
 
-  // Updated function to handle folder navigation
   const handleFolderEnter = useCallback(
     (folderId: string, folderName: string) => {
       setCurrentFolderId(folderId);
@@ -68,37 +54,35 @@ const Finder: React.FC = () => {
     }
   }, [folderPath]);
 
+  const handleCategoryClick = useCallback((categoryId: string) => {
+    // Implement category click functionality
+    console.log("Category clicked:", categoryId);
+  }, []);
+
   return (
     <div
       ref={finderRef}
-      className="relative h-full w-full overflow-hidden"
+      className="relative h-full w-full overflow-hidden flex"
       onContextMenu={handleContextMenu}
       onClick={closeContextMenu}
     >
-      <div className="absolute top-0 left-0 right-0 h-8 bg-gray-200 flex items-center px-4">
-        <button onClick={handleNavigateBack} disabled={folderPath.length <= 1}>
-          Back
-        </button>
-        <span className="ml-4">{folderPath.join(" / ")}</span>
+      <div className="w-48 h-full bg-gray-200 flex-shrink-0">
+        <Sidebar onCategoryClick={handleCategoryClick} />
       </div>
-      <motion.div
-        className="absolute left-0 top-8 bottom-0"
-        initial={{ width: 0 }}
-        animate={{ width: isSidebarVisible ? 96 : 0 }}
-        transition={{ duration: 0.3 }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <Sidebar isVisible={isSidebarVisible} />
-      </motion.div>
-      <motion.div
-        className="absolute top-8 bottom-0 right-0"
-        initial={{ left: 0 }}
-        animate={{ left: isSidebarVisible ? 96 : 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Canvas ref={canvasRef} onFolderEnter={handleFolderEnter} />
-      </motion.div>
+      <div className="flex-grow flex flex-col">
+        <div className="h-12 bg-gray-300 flex items-center px-4">
+          <button
+            onClick={handleNavigateBack}
+            disabled={folderPath.length <= 1}
+          >
+            Back
+          </button>
+          <span className="ml-4">{folderPath.join(" / ")}</span>
+        </div>
+        <div className="flex-grow relative">
+          <Canvas ref={canvasRef} onFolderEnter={handleFolderEnter} />
+        </div>
+      </div>
       {contextMenu && contextMenu.type === "canvas" && (
         <CanvasContextMenu
           x={contextMenu.x}

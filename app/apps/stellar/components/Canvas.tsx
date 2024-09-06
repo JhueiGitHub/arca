@@ -7,7 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { motion } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
@@ -132,7 +132,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
     [handleFolderNameChange, newFolderName]
   );
 
-  // Updated function to handle double-click on a folder
   const handleFolderDoubleClick = useCallback(
     (folderId: string, folderName: string) => {
       onFolderEnter(folderId, folderName);
@@ -140,6 +139,13 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
     },
     [onFolderEnter]
   );
+
+  const handleDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    folderId: string
+  ) => {
+    e.dataTransfer.setData("text/plain", folderId);
+  };
 
   if (isLoading) return <div>Loading folders...</div>;
   if (error) return <div>Error loading folders</div>;
@@ -154,12 +160,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
           animate={{ x: folder.position.x, y: folder.position.y }}
           drag
           dragMomentum={false}
-          onDragEnd={(event, info) => {
+          onDragEnd={(event, info: PanInfo) => {
             const newPosition = {
               x: folder.position.x + info.offset.x,
               y: folder.position.y + info.offset.y,
             };
-            // Check if the folder is dropped onto another folder
             const targetFolder = folders.find(
               (f) =>
                 f.id !== folder.id &&
@@ -180,6 +185,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
             onDoubleClick={() =>
               handleFolderDoubleClick(folder.id, folder.name)
             }
+            draggable
+            onDragStart={(e) => handleDragStart(e, folder.id)}
           >
             <Image
               src="/media/folder.png"

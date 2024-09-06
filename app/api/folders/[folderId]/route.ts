@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: { folderId: string } }
 ) {
   try {
-    const { name, position, parentId } = await req.json();
+    const { name, position, parentId, categoryId } = await req.json();
     const { folderId } = params;
 
     const updatedFolder = await db.folder.update({
@@ -16,6 +16,7 @@ export async function PATCH(
         ...(name !== undefined && { name }),
         ...(position !== undefined && { position }),
         ...(parentId !== undefined && { parentId }),
+        ...(categoryId !== undefined && { categoryId }),
       },
     });
 

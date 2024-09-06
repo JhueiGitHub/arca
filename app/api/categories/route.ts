@@ -15,3 +15,22 @@ export async function GET() {
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const profile = await initialProfile();
+    const { name } = await req.json();
+
+    const category = await db.category.create({
+      data: {
+        name,
+        profileId: profile.id,
+      },
+    });
+
+    return NextResponse.json(category);
+  } catch (error) {
+    console.log("[CATEGORIES_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}

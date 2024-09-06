@@ -158,8 +158,8 @@ model DirectMessage {
 model Folder {
   id        String   @id @default(uuid())
   name      String
-  position  Json     // Store x and y coordinates
-  parentId  String?  // For nested folders
+  position  Json
+  parentId  String?
   parent    Folder?  @relation("NestedFolders", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   children  Folder[] @relation("NestedFolders")
   category  Category? @relation(fields: [categoryId], references: [id])
