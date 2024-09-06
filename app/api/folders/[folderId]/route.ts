@@ -10,6 +10,8 @@ export async function PATCH(
     const { name, position, parentId, categoryId } = await req.json();
     const { folderId } = params;
 
+    // Commit: Sidebar-completion
+    // Update folder properties
     const updatedFolder = await db.folder.update({
       where: { id: folderId },
       data: {

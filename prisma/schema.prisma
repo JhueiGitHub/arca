@@ -1,10 +1,12 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgres"
-  url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
@@ -18,7 +20,9 @@ model Profile {
   servers Server[]
   members Member[]
   channels Channel[]
-  folders   Folder[]
+
+  // Finder app additions
+  folders Folder[]
   categories Category[]
 
   createdAt DateTime @default(now())
@@ -155,19 +159,23 @@ model DirectMessage {
   @@index([conversationId])
 }
 
+// Finder app models
+
 model Folder {
-  id        String   @id @default(uuid())
-  name      String
-  position  Json
-  parentId  String?
-  parent    Folder?  @relation("NestedFolders", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  children  Folder[] @relation("NestedFolders")
-  category  Category? @relation(fields: [categoryId], references: [id])
+  id String @id @default(uuid())
+  name String
+  position Json
+  parentId String?
+  parent Folder? @relation("NestedFolders", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children Folder[] @relation("NestedFolders")
   categoryId String?
+  category Category? @relation(fields: [categoryId], references: [id])
+  
+  profileId String
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  profileId String
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([parentId])
@@ -175,13 +183,15 @@ model Folder {
 }
 
 model Category {
-  id        String   @id @default(uuid())
-  name      String
-  folders   Folder[]
+  id String @id @default(uuid())
+  name String
+  folders Folder[]
+  
+  profileId String
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  profileId String
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
 }

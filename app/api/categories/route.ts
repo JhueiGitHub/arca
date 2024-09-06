@@ -6,8 +6,12 @@ import { initialProfile } from "@/lib/initial-profile";
 export async function GET() {
   try {
     const profile = await initialProfile();
+
+    // Commit: Sidebar-completion
+    // Fetch categories with associated folders
     const categories = await db.category.findMany({
       where: { profileId: profile.id },
+      include: { folders: true },
     });
     return NextResponse.json(categories);
   } catch (error) {
@@ -21,6 +25,8 @@ export async function POST(req: Request) {
     const profile = await initialProfile();
     const { name } = await req.json();
 
+    // Commit: Sidebar-completion
+    // Create a new category
     const category = await db.category.create({
       data: {
         name,

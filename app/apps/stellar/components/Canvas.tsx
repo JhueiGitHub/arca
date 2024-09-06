@@ -1,48 +1,49 @@
 // components/finder/Canvas.tsx
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, PanInfo } from "framer-motion";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Folder } from "@prisma/client";
 
-interface FolderWithPosition extends Folder {
+interface Folder {
+  id: string;
+  name: string;
   position: { x: number; y: number };
 }
 
 interface CanvasProps {
-  onFolderEnter: (folderId: string, folderName: string) => void;
+  currentFolderId: string | null;
+  onFolderOpen: (folderId: string, folderName: string) => void;
+  sidebarRef: React.RefObject<HTMLDivElement>;
+  editingFolderId: string | null;
+  onFolderNameUpdate: (folderId: string, newName: string) => void;
 }
 
-interface CanvasRef {
-  handleNewFolder: (x: number, y: number) => void;
-}
-
-const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
-  const [folders, setFolders] = useState<FolderWithPosition[]>([]);
-  const [editingFolder, setEditingFolder] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+const Canvas: React.FC<CanvasProps> = ({
+  currentFolderId,
+  onFolderOpen,
+  sidebarRef,
+  editingFolderId,
+  onFolderNameUpdate,
+}) => {
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
 
+  // CHANGED: Updated query to use currentFolderId
   const { data, isLoading, error } = useQuery({
     queryKey: ["folders", currentFolderId],
     queryFn: async () => {
       const response = await axios.get(
-        `/api/folders${currentFolderId ? `?parentId=${currentFolderId}` : ""}`
+        `/api/folders?parentId=${currentFolderId || "root"}`
       );
-      return response.data as FolderWithPosition[];
+      return response.data as Folder[];
     },
   });
 
+  // CHANGED: Updated useEffect to properly set folders state
   useEffect(() => {
     if (data) {
       setFolders(data);
@@ -50,143 +51,108 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
   }, [data]);
 
   useEffect(() => {
-    if (editingFolder && inputRef.current) {
-      inputRef.current.focus();
+    if (editingFolderId) {
+      const editingFolder = folders.find(
+        (folder) => folder.id === editingFolderId
+      );
+      if (editingFolder) {
+        setEditingFolderName(editingFolder.name);
+      }
     }
-  }, [editingFolder]);
-
-  const handleFolderMove = useCallback(
-    async (
-      id: string,
-      newPosition: { x: number; y: number },
-      newParentId: string | null
-    ) => {
-      setFolders((prevFolders) =>
-        prevFolders.map((folder) =>
-          folder.id === id ? { ...folder, position: newPosition } : folder
-        )
-      );
-
-      try {
-        await axios.patch(`/api/folders/${id}`, {
-          position: newPosition,
-          parentId: newParentId,
-        });
-        queryClient.invalidateQueries(["folders", currentFolderId]);
-      } catch (error) {
-        console.error("Failed to update folder position:", error);
-      }
-    },
-    [queryClient, currentFolderId]
-  );
-
-  const handleFolderNameChange = useCallback(
-    async (id: string, newName: string) => {
-      setFolders((prevFolders) =>
-        prevFolders.map((folder) =>
-          folder.id === id ? { ...folder, name: newName } : folder
-        )
-      );
-
-      try {
-        await axios.patch(`/api/folders/${id}`, { name: newName });
-        queryClient.invalidateQueries(["folders", currentFolderId]);
-      } catch (error) {
-        console.error("Failed to update folder name:", error);
-      }
-    },
-    [queryClient, currentFolderId]
-  );
-
-  const handleNewFolder = useCallback(
-    async (x: number, y: number) => {
-      try {
-        const response = await axios.post("/api/folders", {
-          name: "",
-          position: { x, y },
-          parentId: currentFolderId,
-        });
-        const newFolder = response.data;
-        setFolders((prevFolders) => [...prevFolders, newFolder]);
-        setEditingFolder(newFolder.id);
-        setNewFolderName("");
-        queryClient.invalidateQueries(["folders", currentFolderId]);
-      } catch (error) {
-        console.error("Failed to create new folder:", error);
-      }
-    },
-    [queryClient, currentFolderId]
-  );
-
-  useImperativeHandle(ref, () => ({
-    handleNewFolder,
-  }));
-
-  const handleNameInputKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, folderId: string) => {
-      if (e.key === "Enter") {
-        handleFolderNameChange(folderId, newFolderName);
-        setEditingFolder(null);
-      }
-    },
-    [handleFolderNameChange, newFolderName]
-  );
-
-  const handleFolderDoubleClick = useCallback(
-    (folderId: string, folderName: string) => {
-      onFolderEnter(folderId, folderName);
-      setCurrentFolderId(folderId);
-    },
-    [onFolderEnter]
-  );
+  }, [editingFolderId, folders]);
 
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     folderId: string
   ) => {
+    setDraggingFolderId(folderId);
     e.dataTransfer.setData("text/plain", folderId);
+  };
+
+  const handleDrag = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    if (sidebarRef.current) {
+      const sidebarRect = sidebarRef.current.getBoundingClientRect();
+      const clientX =
+        "clientX" in event
+          ? event.clientX
+          : (event as TouchEvent).touches[0].clientX;
+      if (clientX < sidebarRect.right) {
+        window.dispatchEvent(
+          new CustomEvent("folderOverSidebar", {
+            detail: { folderId: draggingFolderId },
+          })
+        );
+      }
+    }
+  };
+
+  const handleDragEnd = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    setDraggingFolderId(null);
+    if (canvasRef.current && canvasRef.current.contains(event.target as Node)) {
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const clientX =
+        "clientX" in event ? event.clientX : event.touches[0].clientX;
+      const clientY =
+        "clientY" in event ? event.clientY : event.touches[0].clientY;
+      const newPosition = {
+        x: clientX - canvasRect.left,
+        y: clientY - canvasRect.top,
+      };
+      updateFolderPosition(draggingFolderId!, newPosition);
+    }
+  };
+
+  const updateFolderPosition = async (
+    folderId: string,
+    position: { x: number; y: number }
+  ) => {
+    try {
+      await axios.patch(`/api/folders/${folderId}`, { position });
+      queryClient.invalidateQueries(["folders", currentFolderId]);
+    } catch (error) {
+      console.error("Failed to update folder position:", error);
+    }
+  };
+
+  const handleFolderNameInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    folderId: string
+  ) => {
+    if (e.key === "Enter") {
+      onFolderNameUpdate(folderId, editingFolderName);
+    }
   };
 
   if (isLoading) return <div>Loading folders...</div>;
   if (error) return <div>Error loading folders</div>;
 
+  // CHANGED: Added console.log to debug folders state
+  console.log("Folders:", folders);
+
   return (
-    <div className="h-full w-full bg-gray-100 relative">
+    <div ref={canvasRef} className="h-full w-full bg-gray-100 relative">
       {folders.map((folder) => (
         <motion.div
           key={folder.id}
           className="absolute cursor-move"
-          initial={{ x: folder.position.x, y: folder.position.y }}
-          animate={{ x: folder.position.x, y: folder.position.y }}
+          initial={folder.position}
+          animate={folder.position}
           drag
           dragMomentum={false}
-          onDragEnd={(event, info: PanInfo) => {
-            const newPosition = {
-              x: folder.position.x + info.offset.x,
-              y: folder.position.y + info.offset.y,
-            };
-            const targetFolder = folders.find(
-              (f) =>
-                f.id !== folder.id &&
-                newPosition.x > f.position.x &&
-                newPosition.x < f.position.x + 80 &&
-                newPosition.y > f.position.y &&
-                newPosition.y < f.position.y + 80
-            );
-            handleFolderMove(
-              folder.id,
-              newPosition,
-              targetFolder ? targetFolder.id : currentFolderId
-            );
-          }}
+          onDrag={(e, info) => handleDrag(e, info)}
+          onDragEnd={(e, info) => handleDragEnd(e, info)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <div
             className="w-20 h-20 flex flex-col items-center justify-center"
-            onDoubleClick={() =>
-              handleFolderDoubleClick(folder.id, folder.name)
-            }
-            draggable
-            onDragStart={(e) => handleDragStart(e, folder.id)}
+            onDoubleClick={() => onFolderOpen(folder.id, folder.name)}
           >
             <Image
               src="/media/folder.png"
@@ -194,28 +160,18 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
               width={48}
               height={48}
             />
-            {editingFolder === folder.id ? (
+            {editingFolderId === folder.id ? (
               <input
-                ref={inputRef}
                 type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => handleNameInputKeyDown(e, folder.id)}
-                onBlur={() => {
-                  handleFolderNameChange(folder.id, newFolderName);
-                  setEditingFolder(null);
-                }}
+                value={editingFolderName}
+                onChange={(e) => setEditingFolderName(e.target.value)}
+                onKeyDown={(e) => handleFolderNameInputKeyDown(e, folder.id)}
+                onBlur={() => onFolderNameUpdate(folder.id, editingFolderName)}
                 className="mt-2 text-xs text-center w-full px-1 bg-transparent border-none outline-none"
+                autoFocus
               />
             ) : (
-              <span
-                className="mt-2 text-xs text-center break-words w-full px-1"
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setEditingFolder(folder.id);
-                  setNewFolderName(folder.name);
-                }}
-              >
+              <span className="mt-2 text-xs text-center break-words w-full px-1">
                 {folder.name}
               </span>
             )}
@@ -224,8 +180,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
       ))}
     </div>
   );
-});
-
-Canvas.displayName = "Canvas";
+};
 
 export default Canvas;

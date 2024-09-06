@@ -1,46 +1,50 @@
 // components/finder/Sidebar.tsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 
 interface Category {
   id: string;
   name: string;
+  folders: Folder[];
 }
 
-interface SidebarProps {
-  onCategoryClick: (categoryId: string) => void;
+interface Folder {
+  id: string;
+  name: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onCategoryClick }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+// CHANGED: Removed onFolderSelect from SidebarProps
+interface SidebarProps {}
+
+const Sidebar: React.FC<SidebarProps> = () => {
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set()
+  );
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data: categories,
+    isLoading,
+    error,
+  } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => {
       const response = await axios.get("/api/categories");
-      return response.data as Category[];
+      return response.data;
     },
   });
 
-  useEffect(() => {
-    if (data) {
-      setCategories(data);
-    }
-  }, [data]);
-
-  const handleDragOver = (
-    e: React.DragEvent<HTMLDivElement>,
-    categoryId: string
-  ) => {
-    e.preventDefault();
-    setHoveredCategory(categoryId);
-  };
-
-  const handleDragLeave = () => {
-    setHoveredCategory(null);
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
   };
 
   const handleDrop = async (
@@ -51,31 +55,37 @@ const Sidebar: React.FC<SidebarProps> = ({ onCategoryClick }) => {
     const folderId = e.dataTransfer.getData("text/plain");
     try {
       await axios.patch(`/api/folders/${folderId}`, { categoryId });
-      queryClient.invalidateQueries(["folders"]);
       queryClient.invalidateQueries(["categories"]);
     } catch (error) {
       console.error("Failed to add folder to category:", error);
     }
-    setHoveredCategory(null);
   };
 
   if (isLoading) return <div>Loading categories...</div>;
   if (error) return <div>Error loading categories</div>;
 
   return (
-    <div className="h-full p-4 overflow-y-auto">
-      {categories.map((category) => (
-        <div
-          key={category.id}
-          className={`mb-2 p-2 rounded cursor-pointer ${
-            hoveredCategory === category.id ? "bg-blue-200" : "bg-white"
-          }`}
-          onClick={() => onCategoryClick(category.id)}
-          onDragOver={(e) => handleDragOver(e, category.id)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, category.id)}
-        >
-          {category.name}
+    <div className="p-4">
+      {categories?.map((category) => (
+        <div key={category.id} className="mb-4">
+          <div
+            className="flex justify-between items-center p-2 bg-gray-200 cursor-pointer"
+            onClick={() => toggleCategory(category.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDrop(e, category.id)}
+          >
+            <span>{category.name}</span>
+            <span>{expandedCategories.has(category.id) ? "▼" : "▶"}</span>
+          </div>
+          {expandedCategories.has(category.id) && (
+            <div className="ml-4">
+              {category.folders.map((folder) => (
+                <div key={folder.id} className="p-2">
+                  {folder.name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
