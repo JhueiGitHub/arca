@@ -17,23 +17,28 @@ interface FolderWithPosition extends Folder {
   position: { x: number; y: number };
 }
 
-interface CanvasProps {}
+interface CanvasProps {
+  onFolderEnter: (folderId: string, folderName: string) => void;
+}
 
 interface CanvasRef {
   handleNewFolder: (x: number, y: number) => void;
 }
 
-const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
+const Canvas = forwardRef<CanvasRef, CanvasProps>(({ onFolderEnter }, ref) => {
   const [folders, setFolders] = useState<FolderWithPosition[]>([]);
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["folders"],
+    queryKey: ["folders", currentFolderId],
     queryFn: async () => {
-      const response = await axios.get("/api/folders");
+      const response = await axios.get(
+        `/api/folders${currentFolderId ? `?parentId=${currentFolderId}` : ""}`
+      );
       return response.data as FolderWithPosition[];
     },
   });
@@ -51,7 +56,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
   }, [editingFolder]);
 
   const handleFolderMove = useCallback(
-    async (id: string, newPosition: { x: number; y: number }) => {
+    async (
+      id: string,
+      newPosition: { x: number; y: number },
+      newParentId: string | null
+    ) => {
       setFolders((prevFolders) =>
         prevFolders.map((folder) =>
           folder.id === id ? { ...folder, position: newPosition } : folder
@@ -59,13 +68,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
       );
 
       try {
-        await axios.patch(`/api/folders/${id}`, { position: newPosition });
-        queryClient.invalidateQueries(["folders"]);
+        await axios.patch(`/api/folders/${id}`, {
+          position: newPosition,
+          parentId: newParentId,
+        });
+        queryClient.invalidateQueries(["folders", currentFolderId]);
       } catch (error) {
         console.error("Failed to update folder position:", error);
       }
     },
-    [queryClient]
+    [queryClient, currentFolderId]
   );
 
   const handleFolderNameChange = useCallback(
@@ -78,12 +90,12 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
 
       try {
         await axios.patch(`/api/folders/${id}`, { name: newName });
-        queryClient.invalidateQueries(["folders"]);
+        queryClient.invalidateQueries(["folders", currentFolderId]);
       } catch (error) {
         console.error("Failed to update folder name:", error);
       }
     },
-    [queryClient]
+    [queryClient, currentFolderId]
   );
 
   const handleNewFolder = useCallback(
@@ -92,17 +104,18 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
         const response = await axios.post("/api/folders", {
           name: "",
           position: { x, y },
+          parentId: currentFolderId,
         });
         const newFolder = response.data;
         setFolders((prevFolders) => [...prevFolders, newFolder]);
         setEditingFolder(newFolder.id);
         setNewFolderName("");
-        queryClient.invalidateQueries(["folders"]);
+        queryClient.invalidateQueries(["folders", currentFolderId]);
       } catch (error) {
         console.error("Failed to create new folder:", error);
       }
     },
-    [queryClient]
+    [queryClient, currentFolderId]
   );
 
   useImperativeHandle(ref, () => ({
@@ -119,6 +132,15 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
     [handleFolderNameChange, newFolderName]
   );
 
+  // Updated function to handle double-click on a folder
+  const handleFolderDoubleClick = useCallback(
+    (folderId: string, folderName: string) => {
+      onFolderEnter(folderId, folderName);
+      setCurrentFolderId(folderId);
+    },
+    [onFolderEnter]
+  );
+
   if (isLoading) return <div>Loading folders...</div>;
   if (error) return <div>Error loading folders</div>;
 
@@ -133,13 +155,32 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
           drag
           dragMomentum={false}
           onDragEnd={(event, info) => {
-            handleFolderMove(folder.id, {
+            const newPosition = {
               x: folder.position.x + info.offset.x,
               y: folder.position.y + info.offset.y,
-            });
+            };
+            // Check if the folder is dropped onto another folder
+            const targetFolder = folders.find(
+              (f) =>
+                f.id !== folder.id &&
+                newPosition.x > f.position.x &&
+                newPosition.x < f.position.x + 80 &&
+                newPosition.y > f.position.y &&
+                newPosition.y < f.position.y + 80
+            );
+            handleFolderMove(
+              folder.id,
+              newPosition,
+              targetFolder ? targetFolder.id : currentFolderId
+            );
           }}
         >
-          <div className="w-20 h-20 flex flex-col items-center justify-center">
+          <div
+            className="w-20 h-20 flex flex-col items-center justify-center"
+            onDoubleClick={() =>
+              handleFolderDoubleClick(folder.id, folder.name)
+            }
+          >
             <Image
               src="/media/folder.png"
               alt="Folder"
@@ -162,7 +203,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
             ) : (
               <span
                 className="mt-2 text-xs text-center break-words w-full px-1"
-                onDoubleClick={() => {
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
                   setEditingFolder(folder.id);
                   setNewFolderName(folder.name);
                 }}

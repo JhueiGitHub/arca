@@ -13,6 +13,8 @@ const Finder: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [folderPath, setFolderPath] = useState<string[]>(["Root"]);
   const finderRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<{
     handleNewFolder: (x: number, y: number) => void;
@@ -46,6 +48,26 @@ const Finder: React.FC = () => {
     canvasRef.current?.handleNewFolder(x, y);
   }, []);
 
+  // Updated function to handle folder navigation
+  const handleFolderEnter = useCallback(
+    (folderId: string, folderName: string) => {
+      setCurrentFolderId(folderId);
+      setFolderPath((prevPath) => [...prevPath, folderName]);
+    },
+    []
+  );
+
+  const handleNavigateBack = useCallback(() => {
+    if (folderPath.length > 1) {
+      setFolderPath((prevPath) => prevPath.slice(0, -1));
+      setCurrentFolderId((prevFolderId) => {
+        // Here you would need to fetch the parent folder ID based on the current folder ID
+        // For simplicity, we're just setting it to null to go back to the root
+        return null;
+      });
+    }
+  }, [folderPath]);
+
   return (
     <div
       ref={finderRef}
@@ -53,8 +75,14 @@ const Finder: React.FC = () => {
       onContextMenu={handleContextMenu}
       onClick={closeContextMenu}
     >
+      <div className="absolute top-0 left-0 right-0 h-8 bg-gray-200 flex items-center px-4">
+        <button onClick={handleNavigateBack} disabled={folderPath.length <= 1}>
+          Back
+        </button>
+        <span className="ml-4">{folderPath.join(" / ")}</span>
+      </div>
       <motion.div
-        className="absolute left-0 top-0 h-full"
+        className="absolute left-0 top-8 bottom-0"
         initial={{ width: 0 }}
         animate={{ width: isSidebarVisible ? 96 : 0 }}
         transition={{ duration: 0.3 }}
@@ -64,12 +92,12 @@ const Finder: React.FC = () => {
         <Sidebar isVisible={isSidebarVisible} />
       </motion.div>
       <motion.div
-        className="h-full"
-        initial={{ marginLeft: 0 }}
-        animate={{ marginLeft: isSidebarVisible ? 96 : 0 }}
+        className="absolute top-8 bottom-0 right-0"
+        initial={{ left: 0 }}
+        animate={{ left: isSidebarVisible ? 96 : 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Canvas ref={canvasRef} />
+        <Canvas ref={canvasRef} onFolderEnter={handleFolderEnter} />
       </motion.div>
       {contextMenu && contextMenu.type === "canvas" && (
         <CanvasContextMenu

@@ -6,13 +6,14 @@ import { initialProfile } from "@/lib/initial-profile";
 export async function POST(req: Request) {
   try {
     const profile = await initialProfile();
-    const { name, position } = await req.json();
+    const { name, position, parentId } = await req.json();
 
     const folder = await db.folder.create({
       data: {
         name,
         position,
         profileId: profile.id,
+        parentId,
       },
     });
 
@@ -23,11 +24,17 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const profile = await initialProfile();
+    const { searchParams } = new URL(req.url);
+    const parentId = searchParams.get("parentId");
+
     const folders = await db.folder.findMany({
-      where: { profileId: profile.id },
+      where: {
+        profileId: profile.id,
+        parentId: parentId || null,
+      },
     });
     return NextResponse.json(folders);
   } catch (error) {
