@@ -1,5 +1,5 @@
 // components/finder/Sidebar.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
@@ -14,10 +14,7 @@ interface Folder {
   name: string;
 }
 
-// CHANGED: Removed onFolderSelect from SidebarProps
-interface SidebarProps {}
-
-const Sidebar: React.FC<SidebarProps> = () => {
+const Sidebar: React.FC = () => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
