@@ -4,33 +4,37 @@ import { FileSystemItem } from "@/app/types/FileSystem";
 import "@/app/globals.css";
 
 interface SidebarProps {
-  favorites: FileSystemItem[];
+  sidebarItems: FileSystemItem[];
   onNavigate: (folderId: string) => void;
-  onRemoveFromFavorites: (folderId: string) => void;
+  onRemoveFromSidebar: (folderId: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  favorites,
+  sidebarItems,
   onNavigate,
-  onRemoveFromFavorites,
+  onRemoveFromSidebar,
 }) => {
   return (
     <div className="flex flex-col p-4 h-full">
-      <h2 className="text-white font-semibold mb-4">Favorites</h2>
-      {favorites.map((folder) => (
+      <h2 className="text-white font-semibold mb-4">Sidebar</h2>
+      {sidebarItems.map((folder) => (
         <motion.div
           key={folder.id}
           className="flex items-center mb-2 cursor-pointer"
           whileHover={{ scale: 1.05 }}
           onClick={() => onNavigate(folder.id)}
         >
-          <img src="/media/folder.png" alt="Folder" className="w-6 h-6 mr-2" />
+          <img
+            src="/media/findericon.png"
+            alt="Folder"
+            className="w-3 h-3 mr-2"
+          />
           <span className="text-gray-300 text-sm flex-grow">{folder.name}</span>
           <button
             className="ml-auto text-gray-500 hover:text-red-500"
             onClick={(e) => {
               e.stopPropagation();
-              onRemoveFromFavorites(folder.id);
+              onRemoveFromSidebar(folder.id);
             }}
           >
             <svg

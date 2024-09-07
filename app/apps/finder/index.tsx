@@ -22,6 +22,9 @@ const Finder: React.FC = () => {
     getFolderName,
     canNavigateForward,
     wipeDatabase,
+    addToSidebar,
+    removeFromSidebar,
+    sidebarItems, // Add this line
   } = useFileSystem();
 
   return (
@@ -42,6 +45,9 @@ const Finder: React.FC = () => {
         getFolderName={getFolderName}
         canNavigateForward={canNavigateForward}
         onWipeDatabase={wipeDatabase}
+        onAddToSidebar={addToSidebar}
+        onRemoveFromSidebar={removeFromSidebar}
+        sidebarItems={sidebarItems} // Add this line
       />
     </div>
   );

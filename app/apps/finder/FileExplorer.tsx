@@ -30,6 +30,9 @@ interface FileExplorerProps {
   getFolderName: (folderId: string) => string;
   canNavigateForward: boolean;
   onWipeDatabase: () => Promise<void>;
+  onAddToSidebar: (folder: FileSystemItem) => void;
+  onRemoveFromSidebar: (folderId: string) => void;
+  sidebarItems: FileSystemItem[];
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({
@@ -48,6 +51,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   getFolderName,
   canNavigateForward,
   onWipeDatabase,
+  onAddToSidebar,
+  onRemoveFromSidebar,
+  sidebarItems,
 }) => {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -133,7 +139,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       };
 
       if (isDraggingOverSidebar) {
-        onAddToFavorites(folder);
+        onAddToSidebar(folder);
       } else {
         onUpdateFolderPosition(folder.id, newPosition);
       }
@@ -297,9 +303,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               }}
             >
               <Sidebar
-                favorites={favorites}
+                sidebarItems={sidebarItems}
                 onNavigate={onNavigate}
-                onRemoveFromFavorites={onRemoveFromFavorites}
+                onRemoveFromSidebar={onRemoveFromSidebar}
               />
             </motion.div>
           )}

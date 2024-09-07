@@ -15,10 +15,12 @@ export const useFileSystem = () => {
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [favorites, setFavorites] = useState<FileSystemItem[]>([]);
+  const [sidebarItems, setSidebarItems] = useState<FileSystemItem[]>([]);
 
   useEffect(() => {
     const fileSystemRef = ref(db, "fileSystem");
     const favoritesRef = ref(db, "favorites");
+    const sidebarItemsRef = ref(db, "sidebarItems");
 
     const unsubscribeFileSystem = onValue(fileSystemRef, (snapshot) => {
       const data = snapshot.val();
@@ -45,9 +47,19 @@ export const useFileSystem = () => {
       }
     });
 
+    const unsubscribeSidebarItems = onValue(sidebarItemsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSidebarItems(Object.values(data));
+      } else {
+        setSidebarItems([]);
+      }
+    });
+
     return () => {
       unsubscribeFileSystem();
       unsubscribeFavorites();
+      unsubscribeSidebarItems();
     };
   }, []);
 
@@ -130,9 +142,20 @@ export const useFileSystem = () => {
     [fileSystem]
   );
 
+  const addToSidebar = useCallback((folder: FileSystemItem) => {
+    setSidebarItems((prev) => [...prev, folder]);
+    set(ref(db, `sidebarItems/${folder.id}`), folder);
+  }, []);
+
+  const removeFromSidebar = useCallback((folderId: string) => {
+    setSidebarItems((prev) => prev.filter((item) => item.id !== folderId));
+    remove(ref(db, `sidebarItems/${folderId}`));
+  }, []);
+
   const wipeDatabase = useCallback(async () => {
     await remove(ref(db, "fileSystem"));
     await remove(ref(db, "favorites"));
+    await remove(ref(db, "sidebarItems"));
     setFileSystem({});
     setFavorites([]);
     setCurrentFolder("root");
@@ -163,6 +186,9 @@ export const useFileSystem = () => {
     removeFromFavorites,
     getFolderName,
     canNavigateForward: historyIndex < navigationHistory.length - 1,
+    addToSidebar,
+    removeFromSidebar,
+    sidebarItems,
     wipeDatabase,
   };
 };
