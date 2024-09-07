@@ -1,5 +1,4 @@
 import { currentUser, redirectToSignIn } from "@clerk/nextjs";
-
 import { db } from "@/lib/db";
 
 export const initialProfile = async () => {
@@ -13,7 +12,6 @@ export const initialProfile = async () => {
     where: { userId: user.id },
     include: {
       folders: true,
-      categories: true,
     },
   });
 
@@ -27,25 +25,22 @@ export const initialProfile = async () => {
       name: `${user.firstName} ${user.lastName}`,
       imageUrl: user.imageUrl,
       email: user.emailAddresses[0].emailAddress,
+      folders: {
+        create: [
+          {
+            name: "Home",
+            type: "folder",
+            position: { x: 50, y: 50 },
+          },
+        ],
+      },
+    },
+    include: {
+      folders: true,
     },
   });
 
-  // Create initial "Home" folder
-  await db.folder.create({
-    data: {
-      name: "Home",
-      position: { x: 50, y: 50 },
-      profileId: newProfile.id,
-    },
-  });
-
-  // Create initial "Favorites" category
-  await db.category.create({
-    data: {
-      name: "Favorites",
-      profileId: newProfile.id,
-    },
-  });
+  console.log("New profile with Home folder:", newProfile);
 
   return newProfile;
 };

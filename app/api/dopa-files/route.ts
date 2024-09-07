@@ -6,40 +6,41 @@ export async function GET(req: Request) {
   try {
     const profile = await initialProfile();
     const { searchParams } = new URL(req.url);
-    const parentId = searchParams.get("parentId");
+    const folderId = searchParams.get("folderId");
 
-    const folders = await db.folder.findMany({
+    const dopaFiles = await db.dopaFile.findMany({
       where: {
         profileId: profile.id,
-        parentId: parentId === "root" ? null : parentId,
+        folderId: folderId === "root" ? null : folderId,
       },
     });
 
-    return NextResponse.json(folders);
+    return NextResponse.json(dopaFiles);
   } catch (error) {
-    console.log("[FOLDERS_GET]", error);
+    console.log("[DOPA_FILES_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
 export async function POST(req: Request) {
   try {
     const profile = await initialProfile();
-    const { name, parentId, position } = await req.json();
+    const { name, content, folderId, position } = await req.json();
 
-    const folder = await db.folder.create({
+    const dopaFile = await db.dopaFile.create({
       data: {
         name,
+        content,
         position, // Add the position field
         profileId: profile.id,
-        parentId: parentId === "root" ? null : parentId,
+        folderId: folderId === "root" ? null : folderId,
         profile: { connect: { id: profile.id } }, // Connect the profile
-        type: "folder", // Set the type explicitly
       },
     });
 
-    return NextResponse.json(folder);
+    return NextResponse.json(dopaFile);
   } catch (error) {
-    console.log("[FOLDERS_POST]", error);
+    console.log("[DOPA_FILE_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

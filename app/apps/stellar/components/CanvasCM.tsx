@@ -5,7 +5,7 @@ interface CanvasContextMenuProps {
   x: number;
   y: number;
   onClose: () => void;
-  onCreate: (name: string, x: number, y: number) => void;
+  onCreate: (name: string, x: number, y: number, type: string) => void;
   currentFolderId: string | null;
 }
 
@@ -16,33 +16,32 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   onCreate,
   currentFolderId,
 }) => {
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreatingItem, setIsCreatingItem] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [itemType, setItemType] = useState<"folder" | "dopa">("folder");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isCreatingFolder && inputRef.current) {
+    if (isCreatingItem && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isCreatingFolder]);
+  }, [isCreatingItem]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewFolderName(e.target.value);
+    setNewItemName(e.target.value);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      // CHANGED: Pass x and y coordinates to onCreate
-      onCreate(newFolderName, x, y);
+      const name = itemType === "dopa" ? `${newItemName}.dopa` : newItemName;
+      onCreate(name, x, y, itemType);
       onClose();
     }
   };
 
-  // ADDED: Function to handle "New Folder" click
-  const handleNewFolderClick = () => {
-    setIsCreatingFolder(true);
-    // CHANGED: Immediately create a new folder with empty name
-    onCreate("", x, y);
+  const handleNewItemClick = (type: "folder" | "dopa") => {
+    setIsCreatingItem(true);
+    setItemType(type);
   };
 
   return (
@@ -50,24 +49,31 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
       className="absolute bg-white shadow-md rounded-md py-2 z-50"
       style={{ left: `${x}px`, top: `${y}px` }}
     >
-      {!isCreatingFolder ? (
-        <div
-          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-          // CHANGED: Use handleNewFolderClick instead of setIsCreatingFolder
-          onClick={handleNewFolderClick}
-        >
-          New Folder
-        </div>
+      {!isCreatingItem ? (
+        <>
+          <div
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => handleNewItemClick("folder")}
+          >
+            New Folder
+          </div>
+          <div
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => handleNewItemClick("dopa")}
+          >
+            New .dopa File
+          </div>
+        </>
       ) : (
         <div className="px-4 py-2">
           <input
             ref={inputRef}
             type="text"
-            value={newFolderName}
+            value={newItemName}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
             className="border-none outline-none"
-            placeholder="Enter folder name"
+            placeholder={`Enter ${itemType === "dopa" ? "file" : "folder"} name`}
           />
         </div>
       )}
