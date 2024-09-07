@@ -7,31 +7,48 @@ interface SidebarProps {
   sidebarItems: FileSystemItem[];
   onNavigate: (folderId: string) => void;
   onRemoveFromSidebar: (folderId: string) => void;
+  className?: string; // Add this line
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   sidebarItems,
   onNavigate,
   onRemoveFromSidebar,
+  className,
 }) => {
   return (
-    <div className="flex flex-col p-4 h-full">
-      <h2 className="text-white font-semibold mb-4">Sidebar</h2>
+    <div className={className}>
+      <h2
+        className="text-[#636464] font-light mb-[6px] text-nowrap text-[13px] w-full"
+        style={{
+          marginLeft: "12px",
+          paddingTop: "9px",
+          fontFamily: "ExemplarPro",
+        }}
+      >
+        Favourites
+      </h2>
       {sidebarItems.map((folder) => (
         <motion.div
           key={folder.id}
           className="flex items-center mb-2 cursor-pointer"
-          whileHover={{ scale: 1.05 }}
+          style={{
+            marginLeft: "12px",
+            fontFamily: "ExemplarPro",
+          }}
+          whileHover={{ scale: 1.02 }}
           onClick={() => onNavigate(folder.id)}
         >
           <img
             src="/media/findericon.png"
             alt="Folder"
-            className="w-3 h-3 mr-2"
+            className="w-[18px] h-[18px] ml-1 mr-2 opacity-80"
           />
-          <span className="text-gray-300 text-sm flex-grow">{folder.name}</span>
+          <span className="text-[#DDE2E2]/90 text-[13px] flex-grow">
+            {folder.name}
+          </span>
           <button
-            className="ml-auto text-gray-500 hover:text-red-500"
+            className="ml-auto text-gray-500 hover:text-red-500 opacity-0 mr-2"
             onClick={(e) => {
               e.stopPropagation();
               onRemoveFromSidebar(folder.id);

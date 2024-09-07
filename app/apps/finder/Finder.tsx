@@ -152,7 +152,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     return (
       <motion.div
         key={folder.id}
-        className="absolute flex cursor-move flex-col items-center"
+        className="absolute flex cursor-move flex-col items-center text-red-500 text-[14px]"
+        style={{
+          fontFamily: "Dank",
+        }}
         initial={{ x: folder.position?.x || 0, y: folder.position?.y || 0 }}
         animate={{ x: folder.position?.x || 0, y: folder.position?.y || 0 }}
         drag
@@ -168,7 +171,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <input
             type="text"
             defaultValue={folder.name}
-            className="w-20 bg-transparent text-center text-white outline-none"
+            className="w-20 bg-transparent text-center text-[#DDE2E2]/60 outline-none"
+            style={{
+              fontFamily: "Dank",
+            }}
             onBlur={(e) => {
               onRenameFolder(folder.id, e.target.value);
               setEditingFolder(null);
@@ -183,7 +189,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           />
         ) : (
           <span
-            className="mt-1 text-sm text-gray-300"
+            className="mt-[3px] text-[15px] text-[#DDE2E2]/75"
             onDoubleClick={(e) => {
               e.stopPropagation();
               setEditingFolder(folder.id);
@@ -199,20 +205,27 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   return (
     <div
       ref={explorerRef}
-      className="h-screen overflow-hidden"
+      className="h-screen overflow-hidden w-full bg-black bg-opacity-10 text-white"
       onContextMenu={handleContextMenu}
       onClick={closeContextMenu}
     >
-      <div className="relative h-full w-full">
+      <div className="flex h-screen overflow-hidden">
         <div className="absolute inset-0">
-          <div className="flex items-center p-4">
+          <div
+            className="absolute flex items-center p-4"
+            style={{
+              top: "-9px", // Adjust this value as needed
+              left: "72px", // Adjust horizontal position
+              zIndex: 50, // Ensure it's above the window top bar
+            }}
+          >
             <button
               onClick={onNavigateUp}
-              className="mr-2 text-gray-400 hover:text-white"
+              className="mr-2 text-[#DDE2E2]/30 hover:text-[#DDE2E2]/60"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-[21px] w-[21px]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -229,14 +242,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               onClick={onNavigateForward}
               className={`mr-2 ${
                 canNavigateForward
-                  ? "text-gray-400 hover:text-white"
-                  : "cursor-not-allowed text-gray-600"
+                  ? "text-red-400 hover:text-violet-400"
+                  : "cursor-not-allowed text-[#DDE2E2]/30"
               }`}
               disabled={!canNavigateForward}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-[21px] w-[21px]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -249,11 +262,22 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </svg>
             </button>
-            <span className="text-gray-300">
+            <span
+              className="text-[#DDE2E2]/90 text-[17px]"
+              style={{
+                fontFamily: "ExemplarPro",
+              }}
+            >
               {getFolderName(currentFolder)}
             </span>
           </div>
-          <div className="relative h-[calc(100%-4rem)]">
+          <div
+            className="relative h-[calc(100%-4rem)]"
+            style={{
+              top: "45px", // Adjust this value as needed
+              zIndex: 30, // Ensure it's above the window top bar
+            }}
+          >
             {folderContents.map(renderFolder)}
             {newFolder && (
               <motion.div
@@ -268,7 +292,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
                 <input
                   type="text"
-                  className="w-20 bg-transparent text-center text-white outline-none"
+                  className="w-20 bg-transparent text-center text-[#DDE2E2]/60 outline-none"
+                  style={{
+                    fontFamily: "Dank",
+                  }}
                   placeholder=""
                   autoFocus
                   onBlur={(e) => handleNewFolderNameSubmit(e.target.value)}
@@ -290,7 +317,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -200 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute bottom-0 left-0 top-0 z-10 w-48 border-r border-gray-700 bg-gray-900"
+              className="absolute bottom-0 left-0 top-0 z-10 w-48 h-[calc(100%-60px)]"
+              style={{
+                top: "37px", // Adjust this value as needed
+                zIndex: 50, // Ensure it's above the window top bar
+              }}
               onMouseEnter={() => {
                 setIsSidebarVisible(true);
                 setIsDraggingOverSidebar(true);
@@ -306,6 +337,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 sidebarItems={sidebarItems}
                 onNavigate={onNavigate}
                 onRemoveFromSidebar={onRemoveFromSidebar}
+                className="h-full border-r border-gray-700 border-opacity-30 bg-black bg-opacity-45"
               />
             </motion.div>
           )}

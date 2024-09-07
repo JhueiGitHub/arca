@@ -118,7 +118,12 @@ const Window: React.FC<WindowProps> = ({ id, title, appName, onClose }) => {
         }}
       >
         <div className="w-full h-full flex flex-col bg-black bg-opacity-80 rounded-lg overflow-hidden shadow-2xl border border-gray-900">
-          <div className="px-4 py-2 flex justify-between items-center bg-black bg-opacity-30">
+          <div
+            className="px-4 py-2 flex justify-between items-center bg-black bg-opacity-30"
+            style={{
+              zIndex: 40, // Ensure it's above the window top bar
+            }}
+          >
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleMinimize}

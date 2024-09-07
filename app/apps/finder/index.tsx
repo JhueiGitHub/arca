@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import FileExplorer from "./FileExplorer";
+import FileExplorer from "./Finder";
 import { useFileSystem } from "@/hooks/useFileSystem";
 
 const Finder: React.FC = () => {
