@@ -1,4 +1,15 @@
 import React from "react";
+import { Inter, Roboto_Mono } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const roboto_mono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-roboto-mono",
+});
 
 export const metadata = {
   title: "Obsidian Clone",
@@ -10,5 +21,11 @@ export default function ObsidianLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="h-full w-full overflow-hidden">{children}</div>;
+  return (
+    <div
+      className={`${inter.variable} ${roboto_mono.variable} h-full w-full overflow-hidden`}
+    >
+      {children}
+    </div>
+  );
 }

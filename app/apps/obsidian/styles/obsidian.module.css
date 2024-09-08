@@ -19,6 +19,27 @@
   padding: 16px;
 }
 
+.sidebarHeader {
+  padding: 16px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.noteItem {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.noteItem:hover {
+  background-color: #333333;
+}
+
+.activeNote {
+  background-color: #3a3a3a;
+}
+
 .mainContent {
   flex-grow: 1;
   background-color: #313131;
@@ -61,9 +82,22 @@
   font-size: 16px;
   outline: none;
   overflow-y: auto;
+  width: 100%;
+  min-height: 100px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background-color: transparent;
 }
 
 .contentArea:empty:before {
   content: "Start writing here...";
   color: rgba(147, 159, 173, 0.5);
+}
+
+.exemplarProFont {
+  font-family: "ExemplarPro", sans-serif;
+}
+
+.dankFont {
+  font-family: "Dank", sans-serif;
 }

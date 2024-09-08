@@ -24,6 +24,7 @@ model Profile {
   // Finder app additions
   folders   Folder[]
   dopaFiles DopaFile[]
+  notes    Note[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,4 +201,18 @@ model DopaFile {
 
   @@index([profileId])
   @@index([folderId])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
 }

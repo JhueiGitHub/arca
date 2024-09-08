@@ -1,3 +1,5 @@
+// app/api/finder/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { initialProfile } from "@/lib/initial-profile";
@@ -5,6 +7,11 @@ import { initialProfile } from "@/lib/initial-profile";
 export async function GET(req: Request) {
   try {
     const profile = await initialProfile();
+
+    if (!profile) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const parentId = searchParams.get("parentId");
 
@@ -17,29 +24,34 @@ export async function GET(req: Request) {
 
     return NextResponse.json(folders);
   } catch (error) {
-    console.log("[FOLDERS_GET]", error);
+    console.log("[FINDER_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
 export async function POST(req: Request) {
   try {
     const profile = await initialProfile();
+
+    if (!profile) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const { name, parentId, position } = await req.json();
 
     const folder = await db.folder.create({
       data: {
         name,
-        position, // Add the position field
+        position,
         profileId: profile.id,
         parentId: parentId === "root" ? null : parentId,
-        profile: { connect: { id: profile.id } }, // Connect the profile
-        type: "folder", // Set the type explicitly
+        type: "folder",
       },
     });
 
     return NextResponse.json(folder);
   } catch (error) {
-    console.log("[FOLDERS_POST]", error);
+    console.log("[FINDER_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

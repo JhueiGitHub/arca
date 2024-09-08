@@ -25,9 +25,9 @@ const HiddenNavbar: React.FC = () => {
     >
       <div className="absolute top-4 right-4">
         <UserButton
-          afterSignOutUrl="/sign-in"
+          afterSignOutUrl="/"
           signInUrl="/sign-in"
-          afterMultiSessionSingleSignOutUrl="/sign-in"
+          afterMultiSessionSingleSignOutUrl="/"
           appearance={{
             elements: {
               rootBox: "z-50",
