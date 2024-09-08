@@ -44,7 +44,7 @@ export const appDefinitions: AppDefinition[] = [
     animationType: "magnify",
   },
   {
-    id: "tor",
+    id: "obsidian",
     name: "Tor",
     icon: "/media/tor.png",
     dockPosition: 5,

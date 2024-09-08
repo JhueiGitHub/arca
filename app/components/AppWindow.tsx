@@ -136,7 +136,7 @@ const Window: React.FC<WindowProps> = ({ id, title, appName, onClose }) => {
               <button className="w-3 h-3 rounded-full bg-green-500" />
             </div>
             <h2
-              className="text-white text-sm font-medium"
+              className="text-white text-sm font-medium text-opacity-0"
               style={{ fontFamily: "ExemplarPro" }}
             >
               {title}
