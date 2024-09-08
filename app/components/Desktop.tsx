@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import DockManager from "./DockManager";
 import AppWindow from "./AppWindow";
+import HiddenNavbar from "./HiddenNavbar";
 import { ClerkProvider, UserButton } from "@clerk/nextjs";
 
 interface OpenWindow {
@@ -53,9 +54,7 @@ const Desktop: React.FC = () => {
         <source src="/media/siamese.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      <div className="absolute top-4 right-4 z-50">
-        <UserButton />
-      </div>
+      <HiddenNavbar />
       {openWindows.map((window) => (
         <AppWindow
           key={window.id}

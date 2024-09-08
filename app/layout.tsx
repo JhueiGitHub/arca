@@ -1,5 +1,6 @@
 // File: /app/layout.tsx
 import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { QueryProvider } from "./providers/query-provider";
 
@@ -16,10 +17,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <QueryProvider>{children}</QueryProvider>
-      </body>
-    </html>
+    <ClerkProvider
+      localization={{
+        signIn: {
+          start: {
+            title: "Login",
+            subtitle: "",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Sign up",
+            subtitle: "",
+          },
+        },
+      }}
+    >
+      <html lang="en">
+        <body className={inter.className}>
+          <QueryProvider>{children}</QueryProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
