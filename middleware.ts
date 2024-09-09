@@ -10,7 +10,15 @@ export default authMiddleware({
     "/sign-up",
     "/api/uploadthing",
     "/api/trpc/[trpc]",
+    "/api/profile",
+    "/api/initial-profile",
+    "/api/sidebar-data",
+    "/api/servers/(.*)",
+    "/api/folders/(.*)",
+    "/api/categories/(.*)",
+    "/api/notes/(.*)",
   ],
+  debug: true,
 });
 
 export const config = {
