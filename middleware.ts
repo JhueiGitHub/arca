@@ -17,6 +17,8 @@ export default authMiddleware({
     "/api/folders/(.*)",
     "/api/categories/(.*)",
     "/api/notes/(.*)",
+    "/api/auth/(.*)",
+    "/api/webhooks/clerk",
   ],
   debug: true,
 });
