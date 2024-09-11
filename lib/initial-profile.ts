@@ -1,11 +1,11 @@
-import { currentUser, redirectToSignIn } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 
 export const initialProfile = async () => {
   const user = await currentUser();
 
   if (!user) {
-    return redirectToSignIn();
+    return null;
   }
 
   const profile = await db.profile.findUnique({
@@ -24,54 +24,47 @@ export const initialProfile = async () => {
       name: `${user.firstName} ${user.lastName}`,
       imageUrl: user.imageUrl,
       email: user.emailAddresses[0].emailAddress,
+      designSystem: {
+        create: {
+          colorTokens: {
+            create: [
+              { name: "primary", value: "#000000" },
+              { name: "secondary", value: "#FFFFFF" },
+            ],
+          },
+          fontTokens: {
+            create: [
+              { name: "heading", value: "Exemplar Pro" },
+              { name: "body", value: "Dank Mono" },
+            ],
+          },
+        },
+      },
+      notes: {
+        create: {
+          title: "Welcome Note",
+          content: "Welcome to Obsidian!",
+        },
+      },
+      folders: {
+        create: {
+          name: "Home",
+          type: "folder",
+          position: { x: 0, y: 0 },
+        },
+      },
+    },
+    include: {
+      designSystem: {
+        include: {
+          colorTokens: true,
+          fontTokens: true,
+        },
+      },
+      notes: true,
+      folders: true,
     },
   });
 
   return newProfile;
 };
-
-export const initializeAppData = async (appName: string, profileId: string) => {
-  switch (appName) {
-    case "finder":
-      await initializeFinderData(profileId);
-      break;
-    case "obsidian":
-      await initializeObsidianData(profileId);
-      break;
-    default:
-      console.log(`No initialization needed for ${appName}`);
-  }
-};
-
-async function initializeFinderData(profileId: string) {
-  const existingFolder = await db.folder.findFirst({
-    where: { profileId, name: "Home" },
-  });
-
-  if (!existingFolder) {
-    await db.folder.create({
-      data: {
-        name: "Home",
-        type: "folder",
-        position: { x: 50, y: 50 },
-        profileId: profileId,
-      },
-    });
-  }
-}
-
-async function initializeObsidianData(profileId: string) {
-  const existingNote = await db.note.findFirst({
-    where: { profileId },
-  });
-
-  if (!existingNote) {
-    await db.note.create({
-      data: {
-        title: "Welcome to Onyx",
-        content: "This is your first note in Onyx!",
-        profileId: profileId,
-      },
-    });
-  }
-}

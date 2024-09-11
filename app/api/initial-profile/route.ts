@@ -1,3 +1,5 @@
+// app/api/initial-profile/route.ts
+
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs";
 import { db } from "@/lib/db";
@@ -15,6 +17,14 @@ export async function GET() {
     const profile = await db.profile.findUnique({
       where: {
         userId: user.id,
+      },
+      include: {
+        designSystem: {
+          include: {
+            colorTokens: true,
+            fontTokens: true,
+          },
+        },
       },
     });
 
@@ -38,6 +48,30 @@ export async function GET() {
         name: `${user.firstName} ${user.lastName}`,
         imageUrl: user.imageUrl,
         email: user.emailAddresses[0].emailAddress,
+        designSystem: {
+          create: {
+            colorTokens: {
+              create: [
+                { name: "primary", value: "#000000" },
+                { name: "secondary", value: "#FFFFFF" },
+              ],
+            },
+            fontTokens: {
+              create: [
+                { name: "heading", value: "Arial" },
+                { name: "body", value: "Helvetica" },
+              ],
+            },
+          },
+        },
+      },
+      include: {
+        designSystem: {
+          include: {
+            colorTokens: true,
+            fontTokens: true,
+          },
+        },
       },
     });
 

@@ -14,6 +14,7 @@ export default authMiddleware({
     "/api/notes/(.*)",
     "/api/auth/(.*)",
     "/api/webhooks/clerk",
+    "/api/design-system",
   ],
   ignoredRoutes: ["/sign-in(.*)", "/sign-up(.*)"],
 });

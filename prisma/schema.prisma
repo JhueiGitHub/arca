@@ -22,9 +22,10 @@ model Profile {
   channels Channel[]
 
   // Finder app additions
-  folders   Folder[]
-  dopaFiles DopaFile[]
-  notes    Note[]
+  folders      Folder[]
+  dopaFiles    DopaFile[]
+  notes        Note[]
+  designSystem DesignSystem?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -204,9 +205,9 @@ model DopaFile {
 }
 
 model Note {
-  id        String   @id @default(uuid())
-  title     String
-  content   String   @db.Text
+  id      String @id @default(uuid())
+  title   String
+  content String @db.Text
 
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -215,4 +216,55 @@ model Note {
   updatedAt DateTime @updatedAt
 
   @@index([profileId])
+}
+
+model DesignSystem {
+  id        String  @id @default(uuid())
+  profileId String  @unique
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  colorTokens ColorToken[]
+  fontTokens  FontToken[]
+  // We can add more token types here in the future
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ColorToken {
+  id             String       @id @default(uuid())
+  name           String
+  value          String
+  designSystemId String
+  designSystem   DesignSystem @relation(fields: [designSystemId], references: [id], onDelete: Cascade)
+  parentId       String?
+  // Updated self-relation
+  parent         ColorToken?  @relation("ColorHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children       ColorToken[] @relation("ColorHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([designSystemId, name])
+  @@index([parentId])
+  @@index([designSystemId])
+}
+
+model FontToken {
+  id             String       @id @default(uuid())
+  name           String
+  value          String
+  designSystemId String
+  designSystem   DesignSystem @relation(fields: [designSystemId], references: [id], onDelete: Cascade)
+  parentId       String?
+  // Updated self-relation
+  parent         FontToken?   @relation("FontHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children       FontToken[]  @relation("FontHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([designSystemId, name])
+  @@index([parentId])
+  @@index([designSystemId])
 }

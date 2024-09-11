@@ -1,17 +1,23 @@
 // app/apps/obsidian/App.tsx
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
 import { useNotes } from "@/hooks/useNotes";
 import styles from "./styles/obsidian.module.css";
 
-interface Note {
+interface Token {
   id: string;
-  title: string;
-  content: string;
-  createdAt: number;
-  updatedAt: number;
+  name: string;
+  value: string;
+  parentId: string | null;
+}
+
+interface DesignSystem {
+  id: string;
+  colorTokens: Token[];
+  fontTokens: Token[];
 }
 
 const App: React.FC = () => {
@@ -24,7 +30,35 @@ const App: React.FC = () => {
     deleteNote,
   } = useNotes();
 
-  const handleSelectNote = (note: Note) => {
+  const [designSystem, setDesignSystem] = useState<DesignSystem | null>(null);
+
+  useEffect(() => {
+    fetchDesignSystem();
+  }, []);
+
+  const fetchDesignSystem = async () => {
+    try {
+      const response = await axios.get("/api/design-system");
+      setDesignSystem(response.data);
+    } catch (error) {
+      console.error("Failed to fetch design system:", error);
+    }
+  };
+
+  const getTokenValue = (
+    tokenName: string,
+    tokenType: "color" | "font"
+  ): string => {
+    if (!designSystem) return "";
+    const tokens =
+      tokenType === "color"
+        ? designSystem.colorTokens
+        : designSystem.fontTokens;
+    const token = tokens.find((t) => t.name === tokenName);
+    return token ? token.value : "";
+  };
+
+  const handleSelectNote = (note: any) => {
     setCurrentNote(note);
   };
 
@@ -34,6 +68,16 @@ const App: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <style jsx global>{`
+        .${styles.titleInput} {
+          color: ${getTokenValue("heading", "color")};
+          font-family: ${getTokenValue("heading", "font")};
+        }
+        .${styles.contentArea} {
+          color: ${getTokenValue("body", "color")};
+          font-family: ${getTokenValue("body", "font")};
+        }
+      `}</style>
       <Sidebar
         notes={notes}
         currentNote={currentNote}
