@@ -205,10 +205,12 @@ model DopaFile {
 }
 
 model Note {
-  id      String @id @default(uuid())
-  title   String
-  content String @db.Text
-
+  id        String  @id @default(uuid())
+  title     String
+  content   String  @db.Text
+  parentId  String?
+  parent    Note?   @relation("NestedNotes", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children  Note[]  @relation("NestedNotes")
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -216,6 +218,7 @@ model Note {
   updatedAt DateTime @updatedAt
 
   @@index([profileId])
+  @@index([parentId])
 }
 
 model DesignSystem {

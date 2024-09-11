@@ -1,158 +1,89 @@
-// hooks/useNotes.ts
+// /hooks/useNotes.ts
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { db } from "@/lib/firebase";
-import { ref, onValue, push, update, remove } from "firebase/database";
-import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 
 interface Note {
   id: string;
-  title: string;
+  name: string;
+  isFolder: false;
+  parentId: string | null;
   content: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export const useNotes = () => {
-  const { user } = useUser();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const queryClient = useQueryClient();
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSaveTimeRef = useRef<number>(Date.now());
-  const pendingChangesRef = useRef<{
-    [id: string]: { title: string; content: string };
-  }>({});
 
-  const saveNote = useCallback(
-    async (id: string, title: string, content: string) => {
-      if (!user) return;
-
-      const noteRef = ref(db, `notes/${user.id}/${id}`);
-      await update(noteRef, { title, content, updatedAt: Date.now() });
-      lastSaveTimeRef.current = Date.now();
-      delete pendingChangesRef.current[id];
+  const { data: notes, isLoading } = useQuery<Note[]>({
+    queryKey: ['notes'],
+    queryFn: async () => {
+      const response = await axios.get('/api/obsidian');
+      return response.data.filter((item: any) => !item.isFolder);
     },
-    [user]
-  );
-
-  const createNote = useCallback(
-    async (title: string, content: string) => {
-      if (!user) return;
-
-      const newNoteRef = push(ref(db, `notes/${user.id}`));
-      const newNote: Omit<Note, "id"> = {
-        title,
-        content,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      await update(newNoteRef, newNote);
-      const createdNote = { id: newNoteRef.key as string, ...newNote };
-      setCurrentNote(createdNote);
-    },
-    [user]
-  );
-
-  const updateNote = useCallback(
-    (id: string, title: string, content: string) => {
-      if (!user) return;
-
-      setCurrentNote((prev) =>
-        prev && prev.id === id ? { ...prev, title, content } : prev
-      );
-      setNotes((prevNotes) =>
-        prevNotes.map((note) =>
-          note.id === id ? { ...note, title, content } : note
-        )
-      );
-
-      pendingChangesRef.current[id] = { title, content };
-
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-
-      if (Date.now() - lastSaveTimeRef.current > 5000) {
-        saveNote(id, title, content);
-      } else {
-        updateTimeoutRef.current = setTimeout(() => {
-          Object.entries(pendingChangesRef.current).forEach(
-            ([noteId, changes]) => {
-              saveNote(noteId, changes.title, changes.content);
-            }
-          );
-        }, 2000);
-      }
-    },
-    [user, saveNote]
-  );
-
-  const deleteNote = useCallback(
-    async (id: string) => {
-      if (!user) return;
-
-      const noteRef = ref(db, `notes/${user.id}/${id}`);
-      await remove(noteRef);
-      setNotes((prevNotes) => prevNotes.filter((note) => note.id !== id));
-      setCurrentNote((prev) => (prev && prev.id === id ? null : prev));
-    },
-    [user]
-  );
+  });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoading && notes && notes.length === 0) {
+      createInitialNote();
+    } else if (!isLoading && notes && notes.length > 0 && !currentNote) {
+      setCurrentNote(notes[0]);
+    }
+  }, [isLoading, notes]);
 
-    const notesRef = ref(db, `notes/${user.id}`);
-
-    const unsubscribe = onValue(notesRef, (snapshot) => {
-      const notesData: Note[] = [];
-      snapshot.forEach((childSnapshot) => {
-        notesData.push({
-          id: childSnapshot.key as string,
-          ...childSnapshot.val(),
-        } as Note);
-      });
-      setNotes(notesData);
-
-      // FIXME: This was the problematic part. It was resetting the current note.
-      // if (notesData.length === 0) {
-      //   createNote("Welcome to Onyx", "This is your first note in Onyx!");
-      // } else if (!currentNote) {
-      //   setCurrentNote(notesData[0]);
-      // }
-
-      // NEW: Only set the current note if there isn't one already
-      if (notesData.length > 0 && !currentNote) {
-        setCurrentNote(notesData[0]);
-      }
-
-      // NEW: If there are no notes, create a welcome note
-      if (notesData.length === 0) {
-        createNote("Welcome to Onyx", "This is your first note in Onyx!");
-      }
-
-      // NEW: Update the current note if it exists in the new data
-      if (currentNote) {
-        const updatedCurrentNote = notesData.find(
-          (note) => note.id === currentNote.id
-        );
-        if (updatedCurrentNote) {
-          setCurrentNote(updatedCurrentNote);
-        }
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-      Object.entries(pendingChangesRef.current).forEach(([id, changes]) => {
-        saveNote(id, changes.title, changes.content);
-      });
+  const createInitialNote = async () => {
+    const initialNote = {
+      name: 'Welcome to Obsidian',
+      content: 'This is your first note. Start writing!',
+      isFolder: false,
+      parentId: null,
     };
-  }, [user, createNote, saveNote, currentNote]); // Added currentNote to dependencies
+    const response = await axios.post('/api/obsidian', initialNote);
+    queryClient.invalidateQueries(['notes']);
+    setCurrentNote(response.data);
+  };
+
+  const createNoteMutation = useMutation({
+    mutationFn: (newNote: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => 
+      axios.post('/api/obsidian', { ...newNote, isFolder: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notes']);
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: (updatedNote: Note) => 
+      axios.patch(`/api/obsidian/${updatedNote.id}`, updatedNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notes']);
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (id: string) => axios.delete(`/api/obsidian/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notes']);
+    },
+  });
+
+  const createNote = (
+    name: string,
+    content: string,
+    parentId: string | null = null
+  ) => {
+    createNoteMutation.mutate({ name, content, parentId, isFolder: false });
+  };
+
+  const updateNote = (note: Note) => {
+    updateNoteMutation.mutate(note);
+  };
+
+  const deleteNote = (id: string) => {
+    deleteNoteMutation.mutate(id);
+  };
 
   return {
     notes,

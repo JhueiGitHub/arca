@@ -1,0 +1,19 @@
+.obsidianSidebar {
+  --light-teal: #2a9a79;
+  --deep-teal: #1a7a61;
+  --deep-blue: #166e6a;
+  --light-blue: #1d8e86;
+  --blue-lilac: #5770b4;
+  --deep-blue-lilac: #455a96;
+  --deep-pink-lilac: #6a51a6;
+  --pink-lilac: #8069c4;
+  --rose: #c45c8a;
+}
+
+.customFolder {
+  font-weight: bold;
+}
+
+.customFile {
+  font-weight: normal;
+}

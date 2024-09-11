@@ -2,8 +2,18 @@
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { ref, get, update, remove } from "firebase/database";
+import { ref, get, set, remove } from "firebase/database";
 import { initialProfile } from "@/lib/initial-profile";
+
+interface NoteOrFolder {
+  id: string;
+  name: string;
+  isFolder: boolean;
+  parentId: string | null;
+  content?: string;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export async function GET(
   req: Request,
@@ -16,17 +26,21 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const noteRef = ref(db, `notes/${profile.id}/${params.noteId}`);
-    const snapshot = await get(noteRef);
+    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
+    const snapshot = await get(itemRef);
 
     if (!snapshot.exists()) {
       return new NextResponse("Note not found", { status: 404 });
     }
 
-    const note = { id: snapshot.key, ...snapshot.val() };
-    return NextResponse.json(note);
+    const item: NoteOrFolder = {
+      id: snapshot.key as string,
+      ...(snapshot.val() as Omit<NoteOrFolder, "id">),
+    };
+
+    return NextResponse.json(item);
   } catch (error) {
-    console.log("[OBSIDIAN_NOTE_GET]", error);
+    console.log("[OBSIDIAN_GET_NOTE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -42,15 +56,26 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { title, content } = await req.json();
-    const noteRef = ref(db, `notes/${profile.id}/${params.noteId}`);
+    const { name, content } = await req.json();
 
-    await update(noteRef, { title, content, updatedAt: Date.now() });
+    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
+    const snapshot = await get(itemRef);
 
-    const updatedNote = { id: params.noteId, title, content };
-    return NextResponse.json(updatedNote);
+    if (!snapshot.exists()) {
+      return new NextResponse("Note not found", { status: 404 });
+    }
+
+    const updatedItem: Partial<NoteOrFolder> = {
+      name,
+      content,
+      updatedAt: Date.now(),
+    };
+
+    await set(itemRef, { ...snapshot.val(), ...updatedItem });
+
+    return NextResponse.json({ id: params.noteId, ...updatedItem });
   } catch (error) {
-    console.log("[OBSIDIAN_NOTE_PATCH]", error);
+    console.log("[OBSIDIAN_PATCH_NOTE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -66,12 +91,12 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const noteRef = ref(db, `notes/${profile.id}/${params.noteId}`);
-    await remove(noteRef);
+    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
+    await remove(itemRef);
 
-    return NextResponse.json({ message: "Note deleted successfully" });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.log("[OBSIDIAN_NOTE_DELETE]", error);
+    console.log("[OBSIDIAN_DELETE_NOTE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

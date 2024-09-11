@@ -1,83 +1,72 @@
-// app/api/initial-profile/route.ts
+// /lib/initial-profile.ts
 
-import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const initialProfile = async () => {
+  const user = await currentUser();
 
-export async function GET() {
-  try {
-    const user = await currentUser();
-
-    if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const profile = await db.profile.findUnique({
-      where: {
-        userId: user.id,
-      },
-      include: {
-        designSystem: {
-          include: {
-            colorTokens: true,
-            fontTokens: true,
-          },
-        },
-      },
-    });
-
-    if (profile) {
-      const server = await db.server.findFirst({
-        where: {
-          members: {
-            some: {
-              profileId: profile.id,
-            },
-          },
-        },
-      });
-
-      return NextResponse.json({ profile, server });
-    }
-
-    const newProfile = await db.profile.create({
-      data: {
-        userId: user.id,
-        name: `${user.firstName} ${user.lastName}`,
-        imageUrl: user.imageUrl,
-        email: user.emailAddresses[0].emailAddress,
-        designSystem: {
-          create: {
-            colorTokens: {
-              create: [
-                { name: "primary", value: "#000000" },
-                { name: "secondary", value: "#FFFFFF" },
-              ],
-            },
-            fontTokens: {
-              create: [
-                { name: "heading", value: "Arial" },
-                { name: "body", value: "Helvetica" },
-              ],
-            },
-          },
-        },
-      },
-      include: {
-        designSystem: {
-          include: {
-            colorTokens: true,
-            fontTokens: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({ profile: newProfile, server: null });
-  } catch (error) {
-    console.log("[INITIAL_PROFILE]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+  if (!user) {
+    return null;
   }
-}
+
+  const profile = await db.profile.findUnique({
+    where: {
+      userId: user.id
+    }
+  });
+
+  if (profile) {
+    return profile;
+  }
+
+  const newProfile = await db.profile.create({
+    data: {
+      userId: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      imageUrl: user.imageUrl,
+      email: user.emailAddresses[0].emailAddress,
+      designSystem: {
+        create: {
+          colorTokens: {
+            create: [
+              { name: "primary", value: "#000000" },
+              { name: "secondary", value: "#FFFFFF" },
+            ]
+          },
+          fontTokens: {
+            create: [
+              { name: "heading", value: "Exemplar Pro" },
+              { name: "body", value: "Dank Mono" },
+            ]
+          }
+        }
+      },
+      notes: {
+        create: {
+          title: "Welcome Note",
+          content: "Welcome to your Obsidian-like app!",
+        }
+      },
+      folders: {
+        create: {
+          name: "Home",
+          type: "folder",
+          position: { x: 0, y: 0 }
+        }
+      }
+    },
+    include: {
+      designSystem: {
+        include: {
+          colorTokens: true,
+          fontTokens: true
+        }
+      },
+      notes: true,
+      folders: true
+    }
+  });
+
+  return newProfile;
+};

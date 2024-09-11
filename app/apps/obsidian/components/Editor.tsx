@@ -1,11 +1,13 @@
-// app/apps/obsidian/components/Editor.tsx
+// /root/app/apps/obsidian/components/Editor.tsx
 
 import React from "react";
 import styles from "../styles/obsidian.module.css";
 
 interface Note {
   id: string;
-  title: string;
+  name: string;
+  isFolder: false;
+  parentId: string | null;
   content: string;
   createdAt: number;
   updatedAt: number;
@@ -13,23 +15,33 @@ interface Note {
 
 interface EditorProps {
   note: Note | null;
-  onUpdateNote: (id: string, title: string, content: string) => void;
+  onUpdateNote: (updatedNote: Note) => void;
 }
 
 const Editor: React.FC<EditorProps> = ({ note, onUpdateNote }) => {
   if (!note) return <div className={styles.editor}>No note selected</div>;
 
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onUpdateNote({
+      ...note,
+      content: e.target.value,
+      updatedAt: Date.now(),
+    });
+  };
+
   return (
     <div className={styles.editor}>
       <input
         type="text"
-        value={note.title}
-        onChange={(e) => onUpdateNote(note.id, e.target.value, note.content)}
+        value={note.name}
+        onChange={(e) =>
+          onUpdateNote({ ...note, name: e.target.value, updatedAt: Date.now() })
+        }
         className={`${styles.titleInput} ${styles.exemplarProFont}`}
       />
       <textarea
         value={note.content}
-        onChange={(e) => onUpdateNote(note.id, note.title, e.target.value)}
+        onChange={handleContentChange}
         className={`${styles.contentArea} ${styles.dankFont}`}
       />
     </div>

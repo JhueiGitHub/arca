@@ -1,23 +1,19 @@
-// app/apps/obsidian/App.tsx
+// /root/app/apps/obsidian/App.tsx
 
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import Sidebar from "./components/Sidebar";
+import React from "react";
+import ObsidianSidebar from "./components/ObsidianSidebar";
 import Editor from "./components/Editor";
 import { useNotes } from "@/hooks/useNotes";
 import styles from "./styles/obsidian.module.css";
 
-interface Token {
+interface Note {
   id: string;
   name: string;
-  value: string;
+  isFolder: false;
   parentId: string | null;
-}
-
-interface DesignSystem {
-  id: string;
-  colorTokens: Token[];
-  fontTokens: Token[];
+  content: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 const App: React.FC = () => {
@@ -30,63 +26,11 @@ const App: React.FC = () => {
     deleteNote,
   } = useNotes();
 
-  const [designSystem, setDesignSystem] = useState<DesignSystem | null>(null);
-
-  useEffect(() => {
-    fetchDesignSystem();
-  }, []);
-
-  const fetchDesignSystem = async () => {
-    try {
-      const response = await axios.get("/api/design-system");
-      setDesignSystem(response.data);
-    } catch (error) {
-      console.error("Failed to fetch design system:", error);
-    }
-  };
-
-  const getTokenValue = (
-    tokenName: string,
-    tokenType: "color" | "font"
-  ): string => {
-    if (!designSystem) return "";
-    const tokens =
-      tokenType === "color"
-        ? designSystem.colorTokens
-        : designSystem.fontTokens;
-    const token = tokens.find((t) => t.name === tokenName);
-    return token ? token.value : "";
-  };
-
-  const handleSelectNote = (note: any) => {
-    setCurrentNote(note);
-  };
-
-  const handleCreateNote = () => {
-    createNote("New Note", "");
-  };
-
   return (
     <div className={styles.container}>
-      <style jsx global>{`
-        .${styles.titleInput} {
-          color: ${getTokenValue("heading", "color")};
-          font-family: ${getTokenValue("heading", "font")};
-        }
-        .${styles.contentArea} {
-          color: ${getTokenValue("body", "color")};
-          font-family: ${getTokenValue("body", "font")};
-        }
-      `}</style>
-      <Sidebar
-        notes={notes}
-        currentNote={currentNote}
-        onSelectNote={handleSelectNote}
-        onCreateNote={handleCreateNote}
-        onDeleteNote={deleteNote}
-      />
+      <ObsidianSidebar />
       <div className={styles.mainContent}>
-        <Editor note={currentNote} onUpdateNote={updateNote} />
+        <Editor note={currentNote as Note | null} onUpdateNote={updateNote} />
       </div>
     </div>
   );
