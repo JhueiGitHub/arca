@@ -1,8 +1,8 @@
-// File: /app/layout.tsx
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { DesignSystemProvider } from "@/components/providers/design-system-provider";
 import "./globals.css";
-import { QueryProvider } from "./providers/query-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,25 +17,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      localization={{
-        signIn: {
-          start: {
-            title: "Login",
-            subtitle: "",
-          },
-        },
-        signUp: {
-          start: {
-            title: "Sign up",
-            subtitle: "",
-          },
-        },
-      }}
-    >
-      <html lang="en">
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <DesignSystemProvider>{children}</DesignSystemProvider>
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

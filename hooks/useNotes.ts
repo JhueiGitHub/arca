@@ -1,88 +1,108 @@
-// /hooks/useNotes.ts
+// /root/app/hooks/useNotes.ts
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { Note } from '@/app/types/Note';
+import debounce from 'lodash/debounce';
 
-interface Note {
-  id: string;
-  name: string;
-  isFolder: false;
-  parentId: string | null;
-  content: string;
-  createdAt: number;
-  updatedAt: number;
+interface SaveLog {
+  timestamp: number;
+  type: string;
+  details: string;
 }
 
 export const useNotes = () => {
-  const queryClient = useQueryClient();
+  const [notes, setNotes] = useState<Note[]>([]);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [saveLogs, setSaveLogs] = useState<SaveLog[]>([]);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
-  const { data: notes, isLoading } = useQuery<Note[]>({
-    queryKey: ['notes'],
-    queryFn: async () => {
+  const addDebugLog = (message: string) => {
+    setDebugLogs(prevLogs => [...prevLogs, `${new Date().toISOString()} - ${message}`]);
+    console.log(message); // Also log to console for immediate feedback
+  };
+
+  const fetchNotes = useCallback(async () => {
+    try {
+      addDebugLog('Fetching notes from API');
       const response = await axios.get('/api/obsidian');
-      return response.data.filter((item: any) => !item.isFolder);
-    },
-  });
+      addDebugLog(`Fetched ${response.data.length} notes`);
+      setNotes(response.data);
+      // If there's no current note set, set the first note as current
+      if (!currentNote && response.data.length > 0) {
+        setCurrentNote(response.data[0]);
+        addDebugLog(`Set first note as current: ${response.data[0].id}`);
+      }
+      return response.data;
+    } catch (error) {
+      addDebugLog(`Failed to fetch notes: ${error}`);
+      console.error('Failed to fetch notes:', error);
+      return [];
+    }
+  }, [currentNote]);
 
   useEffect(() => {
-    if (!isLoading && notes && notes.length === 0) {
-      createInitialNote();
-    } else if (!isLoading && notes && notes.length > 0 && !currentNote) {
-      setCurrentNote(notes[0]);
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const createNote = async (note: Partial<Note>) => {
+    try {
+      addDebugLog(`Creating new note: ${JSON.stringify(note)}`);
+      const response = await axios.post('/api/obsidian', note);
+      addDebugLog(`Note created with id: ${response.data.id}`);
+      setNotes(prevNotes => [...prevNotes, response.data]);
+      setCurrentNote(response.data);
+      addSaveLog('create', `Note created: ${response.data.id}`);
+    } catch (error) {
+      addDebugLog(`Failed to create note: ${error}`);
+      console.error('Failed to create note:', error);
     }
-  }, [isLoading, notes]);
-
-  const createInitialNote = async () => {
-    const initialNote = {
-      name: 'Welcome to Obsidian',
-      content: 'This is your first note. Start writing!',
-      isFolder: false,
-      parentId: null,
-    };
-    const response = await axios.post('/api/obsidian', initialNote);
-    queryClient.invalidateQueries(['notes']);
-    setCurrentNote(response.data);
   };
 
-  const createNoteMutation = useMutation({
-    mutationFn: (newNote: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => 
-      axios.post('/api/obsidian', { ...newNote, isFolder: false }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notes']);
-    },
-  });
+  const debouncedSave = useCallback(
+    debounce(async (noteToSave: Partial<Note> & { id: string }) => {
+      try {
+        addDebugLog(`Saving note: ${noteToSave.id}`);
+        const response = await axios.patch(`/api/obsidian/${noteToSave.id}`, noteToSave);
+        addDebugLog(`Note saved: ${response.data.id}`);
+        setNotes(prevNotes => prevNotes.map(note => note.id === noteToSave.id ? response.data : note));
+        setCurrentNote(response.data);
+        addSaveLog('update', `Note updated: ${response.data.id}`);
+      } catch (error) {
+        addDebugLog(`Failed to update note: ${error}`);
+        console.error('Failed to update note:', error);
+      }
+    }, 1000),
+    []
+  );
 
-  const updateNoteMutation = useMutation({
-    mutationFn: (updatedNote: Note) => 
-      axios.patch(`/api/obsidian/${updatedNote.id}`, updatedNote),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notes']);
-    },
-  });
-
-  const deleteNoteMutation = useMutation({
-    mutationFn: (id: string) => axios.delete(`/api/obsidian/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notes']);
-    },
-  });
-
-  const createNote = (
-    name: string,
-    content: string,
-    parentId: string | null = null
-  ) => {
-    createNoteMutation.mutate({ name, content, parentId, isFolder: false });
+  const updateNote = (updatedNote: Partial<Note> & { id: string }) => {
+    addDebugLog(`Updating note locally: ${updatedNote.id}`);
+    setCurrentNote(prev => prev ? { ...prev, ...updatedNote } : null);
+    setNotes(prevNotes => prevNotes.map(note => 
+      note.id === updatedNote.id ? { ...note, ...updatedNote } : note
+    ));
+    debouncedSave(updatedNote);
   };
 
-  const updateNote = (note: Note) => {
-    updateNoteMutation.mutate(note);
+  const deleteNote = async (noteId: string) => {
+    try {
+      addDebugLog(`Deleting note: ${noteId}`);
+      await axios.delete(`/api/obsidian/${noteId}`);
+      addDebugLog(`Note deleted: ${noteId}`);
+      setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+      if (currentNote?.id === noteId) {
+        setCurrentNote(null);
+      }
+      addSaveLog('delete', `Note deleted: ${noteId}`);
+    } catch (error) {
+      addDebugLog(`Failed to delete note: ${error}`);
+      console.error('Failed to delete note:', error);
+    }
   };
 
-  const deleteNote = (id: string) => {
-    deleteNoteMutation.mutate(id);
+  const addSaveLog = (type: string, details: string) => {
+    setSaveLogs(prevLogs => [...prevLogs, { timestamp: Date.now(), type, details }]);
   };
 
   return {
@@ -92,5 +112,8 @@ export const useNotes = () => {
     createNote,
     updateNote,
     deleteNote,
+    saveLogs,
+    debugLogs,
+    fetchNotes,
   };
 };

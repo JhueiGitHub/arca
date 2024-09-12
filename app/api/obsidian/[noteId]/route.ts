@@ -1,44 +1,32 @@
-// app/api/obsidian/[noteId]/route.ts
+// /app/api/obsidian/[noteId]/route.ts
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { ref, get, set, remove } from "firebase/database";
-import { initialProfile } from "@/lib/initial-profile";
-
-interface NoteOrFolder {
-  id: string;
-  name: string;
-  isFolder: boolean;
-  parentId: string | null;
-  content?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+import { auth } from "@clerk/nextjs";
+import { db } from "@/lib/db";
 
 export async function GET(
   req: Request,
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const profile = await initialProfile();
+    const { userId } = auth();
 
-    if (!profile) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
-    const snapshot = await get(itemRef);
+    const note = await db.note.findUnique({
+      where: {
+        id: params.noteId,
+        profileId: userId,
+      },
+    });
 
-    if (!snapshot.exists()) {
+    if (!note) {
       return new NextResponse("Note not found", { status: 404 });
     }
 
-    const item: NoteOrFolder = {
-      id: snapshot.key as string,
-      ...(snapshot.val() as Omit<NoteOrFolder, "id">),
-    };
-
-    return NextResponse.json(item);
+    return NextResponse.json(note);
   } catch (error) {
     console.log("[OBSIDIAN_GET_NOTE]", error);
     return new NextResponse("Internal Error", { status: 500 });
@@ -50,30 +38,26 @@ export async function PATCH(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const profile = await initialProfile();
+    const { userId } = auth();
 
-    if (!profile) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { name, content } = await req.json();
+    const { title, content } = await req.json();
 
-    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
-    const snapshot = await get(itemRef);
+    const updatedNote = await db.note.update({
+      where: {
+        id: params.noteId,
+        profileId: userId,
+      },
+      data: {
+        title,
+        content,
+      },
+    });
 
-    if (!snapshot.exists()) {
-      return new NextResponse("Note not found", { status: 404 });
-    }
-
-    const updatedItem: Partial<NoteOrFolder> = {
-      name,
-      content,
-      updatedAt: Date.now(),
-    };
-
-    await set(itemRef, { ...snapshot.val(), ...updatedItem });
-
-    return NextResponse.json({ id: params.noteId, ...updatedItem });
+    return NextResponse.json(updatedNote);
   } catch (error) {
     console.log("[OBSIDIAN_PATCH_NOTE]", error);
     return new NextResponse("Internal Error", { status: 500 });
@@ -85,14 +69,18 @@ export async function DELETE(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const profile = await initialProfile();
+    const { userId } = auth();
 
-    if (!profile) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const itemRef = ref(db, `items/${profile.id}/${params.noteId}`);
-    await remove(itemRef);
+    await db.note.delete({
+      where: {
+        id: params.noteId,
+        profileId: userId,
+      },
+    });
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
