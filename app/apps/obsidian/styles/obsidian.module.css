@@ -104,46 +104,87 @@
 
 .debugPanel {
   position: fixed;
-  top: 10px;
-  right: 10px;
+  bottom: 16px;
+  right: 16px;
   width: 300px;
-  max-height: 80vh;
+  max-height: 400px;
   overflow-y: auto;
   background-color: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  border-radius: 8px;
-  padding: 10px;
+  color: #ffffff;
+  padding: 16px;
+  border-radius: 4px;
   font-family: monospace;
-  font-size: 12px;
-  z-index: 1000;
 }
 
 .debugTitle {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 
 .debugSection {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .debugSection h4 {
-  font-size: 14px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .debugSection pre {
   white-space: pre-wrap;
-  word-wrap: break-word;
+  word-break: break-all;
 }
 
-.debugSection ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+.createNoteButton {
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #4a4a4a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.debugSection li {
-  margin-bottom: 5px;
+.createNoteButton:hover {
+  background-color: #5a5a5a;
+}
+
+.tree {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.customFolder,
+.customFile {
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.customFolder:hover,
+.customFile:hover {
+  opacity: 0.8;
+}
+
+.contextMenu {
+  position: fixed;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  padding: 8px 0;
+  min-width: 150px;
+  z-index: 1000;
+}
+
+.contextMenu button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.contextMenu button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
